@@ -282,12 +282,11 @@ namespace mkg {
      * @tparam SharedLockType A RAII type which will be used to lock the `Lockable` when read access is requested (eg. std::shared_lock)
      * @tparam ExclusiveLockType A RAII type which will be used to lock the `Lockable` when write access is requested (eg. std::unique_lock)
      */
-    template<typename NonConcurrentType, basic_shared_lockable LockableType, 
+    template<typename NonConcurrentType, basic_lockable LockableType,
         template <typename...> typename SharedLockType, 
         template <typename...> typename ExclusiveLockType >
     class concurrent {
     public:
-        using shared_accessor_t = shared_accessor<NonConcurrentType, LockableType, SharedLockType>;
         using exclusive_accessor_t = exclusive_accessor<NonConcurrentType, LockableType, ExclusiveLockType>;
 
         /**
@@ -344,7 +343,12 @@ namespace mkg {
          * 
          * @return shared_accessor_t Read-only (shared) accessor object to the wrapped object 
          */
-        decltype(auto) read_access_handle() const noexcept { return shared_accessor_t{ lockable, resource }; }
+        decltype(auto) read_access_handle() const noexcept
+        requires (basic_shared_lockable<LockableType>)
+        {
+            using shared_accessor_t = shared_accessor<NonConcurrentType, LockableType, SharedLockType>;
+            return shared_accessor_t{ lockable, resource };
+        }
 
         /**
          * @brief Get write (exclusive) access to underlying wrapped object. Access object will guarantee
